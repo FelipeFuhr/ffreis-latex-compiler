@@ -42,7 +42,7 @@ func newJob(t *testing.T) Job {
 	if err := os.WriteFile(src, []byte(`\documentclass{article}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	return Job{SourceTeX: src, WorkDir: dir, OutDir: out, Slug: "hello", TexInputs: "/t//:", BibInputs: "/b//:"}
+	return Job{SourceTeX: src, WorkDir: dir, OutDir: out, Slug: "hello", TexDirs: []string{"/t"}, BibDirs: []string{"/b"}}
 }
 
 func TestTectonicRender(t *testing.T) {
@@ -62,6 +62,10 @@ func TestTectonicRender(t *testing.T) {
 	if !contains(rr.args, j.SourceTeX) || !contains(rr.args, "compile") {
 		t.Errorf("args missing source/compile: %v", rr.args)
 	}
+	if !contains(rr.args, "search-path=/t") || !contains(rr.args, "search-path=/b") {
+		t.Errorf("tectonic args missing -Z search-path: %v", rr.args)
+	}
+	// jobEnv still sets TEXINPUTS/BIBINPUTS (recursive markers) for TeX Live engines.
 	if !contains(rr.env, "TEXINPUTS=/t//:") || !contains(rr.env, "BIBINPUTS=/b//:") {
 		t.Errorf("env missing TEXINPUTS/BIBINPUTS: %v", rr.env)
 	}

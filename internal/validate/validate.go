@@ -78,7 +78,7 @@ func validateArticle(a *article.Article, snip snippets.Repo) posts.Result {
 }
 
 func checkSnippetRefs(a *article.Article, snip snippets.Repo) []string {
-	src, err := os.ReadFile(a.MainTeX) //nolint:gosec // MainTeX is under a trusted articles root
+	src, err := os.ReadFile(a.MainTeX)
 	if err != nil {
 		return []string{fmt.Sprintf("cannot read %s: %v", article.MainTeXName, err)}
 	}

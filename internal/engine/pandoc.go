@@ -35,7 +35,7 @@ func (p *Pandoc) Available() bool { return toolAvailable(p.Tool()) }
 // images/ dir alongside and the posts package normalises the link prefix to the
 // ./images/ convention ffreis-posts uses.
 func (p *Pandoc) Render(ctx context.Context, j Job) (string, error) {
-	if err := os.MkdirAll(j.OutDir, 0o755); err != nil {
+	if err := os.MkdirAll(j.OutDir, 0o750); err != nil {
 		return "", fmt.Errorf("pandoc: mkdir outdir: %w", err)
 	}
 	body := filepath.Join(j.OutDir, BodyMarkdownName)

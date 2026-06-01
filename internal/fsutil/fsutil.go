@@ -11,21 +11,21 @@ import (
 
 // CopyFile copies src to dst, creating parent directories as needed.
 func CopyFile(src, dst string) error {
-	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(dst), 0o750); err != nil {
 		return err
 	}
 	in, err := os.Open(src) //nolint:gosec // paths are derived from trusted local roots
 	if err != nil {
 		return err
 	}
-	defer in.Close()
+	defer func() { _ = in.Close() }()
 
 	out, err := os.Create(dst) //nolint:gosec // paths are derived from trusted local roots
 	if err != nil {
 		return err
 	}
 	if _, err := io.Copy(out, in); err != nil {
-		out.Close()
+		_ = out.Close()
 		return err
 	}
 	return out.Close()
@@ -55,7 +55,7 @@ func CopyDir(src, dst string) error {
 		target := filepath.Join(dst, rel)
 		switch {
 		case d.IsDir():
-			return os.MkdirAll(target, 0o755)
+			return os.MkdirAll(target, 0o750)
 		case d.Type()&os.ModeSymlink != 0:
 			return nil // skip symlinks
 		default:

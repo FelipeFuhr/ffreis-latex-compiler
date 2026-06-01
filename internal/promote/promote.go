@@ -57,7 +57,7 @@ func Run(opts Options) (*Outcome, error) {
 		return out, nil
 	}
 
-	if err := os.MkdirAll(targetDir, 0o755); err != nil {
+	if err := os.MkdirAll(targetDir, 0o750); err != nil {
 		return nil, err
 	}
 	if err := fsutil.CopyFile(srcIndex, filepath.Join(targetDir, "index.md")); err != nil {

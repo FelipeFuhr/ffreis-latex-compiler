@@ -115,7 +115,7 @@ func selectArticles(opts Options) ([]*article.Article, error) {
 
 func buildOne(ctx context.Context, logger *slog.Logger, opts Options, rs RendererSet, snip snippets.Repo, a *article.Article) error {
 	outDir := filepath.Join(opts.OutRoot, a.Slug)
-	if err := os.MkdirAll(outDir, 0o755); err != nil {
+	if err := os.MkdirAll(outDir, 0o750); err != nil {
 		return err
 	}
 	job := engine.Job{
@@ -123,8 +123,8 @@ func buildOne(ctx context.Context, logger *slog.Logger, opts Options, rs Rendere
 		WorkDir:   a.Dir,
 		OutDir:    outDir,
 		Slug:      a.Slug,
-		TexInputs: snip.TexInputs(a.Dir),
-		BibInputs: snip.BibInputs(a.Dir),
+		TexDirs:   snip.TexDirs(a.Dir),
+		BibDirs:   snip.BibDirs(a.Dir),
 	}
 
 	for _, f := range opts.Formats {

@@ -108,7 +108,7 @@ func openPullRequest(ctx context.Context, logger *slog.Logger, postsDir, branch,
 }
 
 func execGit(ctx context.Context, dir, name string, args ...string) (string, error) {
-	cmd := exec.CommandContext(ctx, name, args...)
+	cmd := exec.CommandContext(ctx, name, args...) //nolint:gosec // git/gh invocation with controlled args is the purpose of this helper
 	cmd.Dir = dir
 	cmd.Env = os.Environ()
 	b, err := cmd.CombinedOutput()

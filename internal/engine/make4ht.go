@@ -28,7 +28,7 @@ func (m *Make4ht) Available() bool { return toolAvailable(m.Tool()) }
 // The companion <sourcebase>.css keeps its name and is still referenced by the
 // renamed HTML, so no link rewriting is required.
 func (m *Make4ht) Render(ctx context.Context, j Job) (string, error) {
-	if err := os.MkdirAll(j.OutDir, 0o755); err != nil {
+	if err := os.MkdirAll(j.OutDir, 0o750); err != nil {
 		return "", fmt.Errorf("make4ht: mkdir outdir: %w", err)
 	}
 	args := []string{

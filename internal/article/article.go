@@ -121,7 +121,7 @@ func LoadAll(articlesRoot string) ([]*Article, error) {
 
 func loadMeta(path string) (Meta, error) {
 	var m Meta
-	raw, err := os.ReadFile(path)
+	raw, err := os.ReadFile(path) //nolint:gosec // path is derived from a trusted articles root
 	if err != nil {
 		return m, fmt.Errorf("%s: %w", MetaName, err)
 	}

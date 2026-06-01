@@ -24,6 +24,11 @@ Each format sits behind a `Renderer`; adapters shell out via an injectable
 | HTML | `make4ht` (tex4ht) | ships with TeX Live, which Tectonic deliberately omits |
 | Markdown | `pandoc` | `--to=gfm-raw_html` ⇒ no raw HTML, Medium-safe |
 
+**Search paths.** Tectonic ignores `TEXINPUTS` by design, so snippet directories are
+passed to it as `-Z search-path=<dir>` (one per dir); make4ht/TeX Live gets the same dirs
+via the `TEXINPUTS`/`BIBINPUTS` env. `engine.Job` therefore carries raw `TexDirs`/`BibDirs`
+(from `snippets.Repo.TexDirs/BibDirs`), and each adapter formats them itself.
+
 **These three do not coexist in one lightweight package**: Tectonic is a single
 binary; tex4ht needs a TeX Live install. The full toolchain therefore lives in
 `containers/Dockerfile.cli` (TeX Live base + tectonic + pandoc + the Go binary).
@@ -51,8 +56,13 @@ validation rules (`validate-posts.py`) so a promoted post can't bounce in CI.
   the TeX toolchain — promotion uses the Markdown output).
 - `.github/workflows/promote-to-posts.yml` is **`workflow_dispatch`-only**: it
   compiles one slug's Markdown, opens a **draft PR** in `ffreis-posts`, and never
-  merges. Needs secret `FLEET_CONTENT_PAT` (read on articles/snippets, PR-write
-  on posts). `openPullRequest` refuses to commit onto `main`/`develop`.
+  merges. It uses the **canonical fleet PATs** (no bespoke secret):
+  `FLEET_READ_TOKEN` (checkout articles + snippets) and `FLEET_WRITE_TOKEN`
+  (checkout posts + `gh pr create`). Both are deployed fleet-wide by
+  `quality-kit/scripts/deploy-pats.sh`; since this repo was created after the
+  last fleet rotation, re-run that script (or `gh secret set FLEET_READ_TOKEN`/
+  `FLEET_WRITE_TOKEN`) to land them here. `openPullRequest` refuses to commit
+  onto `main`/`develop`.
 
 ## Medium caveat
 

@@ -28,7 +28,7 @@ func (t *Tectonic) Available() bool { return toolAvailable(t.Tool()) }
 // Render compiles main.tex and renames tectonic's basename-derived output to
 // <slug>.pdf. Returns the absolute path to the produced PDF.
 func (t *Tectonic) Render(ctx context.Context, j Job) (string, error) {
-	if err := os.MkdirAll(j.OutDir, 0o755); err != nil {
+	if err := os.MkdirAll(j.OutDir, 0o750); err != nil {
 		return "", fmt.Errorf("tectonic: mkdir outdir: %w", err)
 	}
 	args := []string{
@@ -36,6 +36,14 @@ func (t *Tectonic) Render(ctx context.Context, j Job) (string, error) {
 		j.SourceTeX,
 		"--outdir", j.OutDir,
 		"--keep-logs",
+	}
+	// Tectonic ignores TEXINPUTS by design, so snippet directories are added via
+	// its own `-Z search-path` flag (one per directory).
+	for _, d := range j.TexDirs {
+		args = append(args, "-Z", "search-path="+d)
+	}
+	for _, d := range j.BibDirs {
+		args = append(args, "-Z", "search-path="+d)
 	}
 	if err := t.run(ctx, j.WorkDir, jobEnv(j), t.Tool(), args...); err != nil {
 		return "", err

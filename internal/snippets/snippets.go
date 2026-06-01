@@ -13,56 +13,53 @@ import (
 
 // Standard top-level directories inside a ffreis-snippets repo.
 var (
-	TeXDirs = []string{"preambles", "classes", "macros", "figures"}
-	BibDirs = []string{"bib"}
+	texSubdirs = []string{"preambles", "classes", "macros", "figures"}
+	bibSubdir  = "bib"
 )
 
 // Repo is a ffreis-snippets checkout rooted at Root. A zero/empty Root means
-// "no snippets repo configured" — TexInputs/BibInputs then contribute nothing
+// "no snippets repo configured" — TexDirs/BibDirs then contribute nothing
 // beyond the caller-supplied extras.
 type Repo struct {
 	Root string
 }
 
-// texPathListSep is the separator TeX uses inside TEXINPUTS/BIBINPUTS. It is ':'
-// on POSIX; the toolchain runs on Linux (native or container) so ':' is correct.
-const texPathListSep = ":"
-
-// TexInputs builds a TEXINPUTS value: each extra dir first (recursive), then the
-// snippets repo root (recursive via the trailing '//'), then a trailing empty
-// entry so the engine still searches its built-in/default trees.
-func (r Repo) TexInputs(extra ...string) string {
-	return r.pathList(r.Root, extra)
-}
-
-// BibInputs builds a BIBINPUTS value covering the snippets bib/ directory plus
-// any extra dirs (recursive), with a trailing empty entry for defaults.
-func (r Repo) BibInputs(extra ...string) string {
-	var root string
+// TexDirs returns the raw directories to add to the TeX search path: the extra
+// dirs (e.g. the article directory) first, then the snippets root and each of
+// its standard subdirectories. Returning raw dirs (rather than a TEXINPUTS
+// string) lets each engine adapter format them its own way — tectonic ignores
+// TEXINPUTS and needs `-Z search-path=<dir>`, while make4ht/TeX Live wants the
+// env var. Enumerating the subdirs covers both `\input{preambles/x}` (resolved
+// against Root) and `\usepackage{cls-in-classes}` (resolved against Root/classes).
+func (r Repo) TexDirs(extra ...string) []string {
+	dirs := make([]string, 0, len(extra)+len(texSubdirs)+1)
+	dirs = appendNonEmpty(dirs, extra...)
 	if r.Root != "" {
-		root = filepath.Join(r.Root, "bib")
-	}
-	return r.pathList(root, extra)
-}
-
-func (r Repo) pathList(root string, extra []string) string {
-	parts := make([]string, 0, len(extra)+2)
-	for _, e := range extra {
-		if e != "" {
-			parts = append(parts, recursive(e))
+		dirs = append(dirs, r.Root)
+		for _, d := range texSubdirs {
+			dirs = append(dirs, filepath.Join(r.Root, d))
 		}
 	}
-	if root != "" {
-		parts = append(parts, recursive(root))
-	}
-	// Trailing empty entry => append the engine's default search path.
-	parts = append(parts, "")
-	return strings.Join(parts, texPathListSep)
+	return dirs
 }
 
-// recursive appends TeX's '//' recursive-search marker to a directory.
-func recursive(dir string) string {
-	return strings.TrimRight(dir, string(os.PathSeparator)) + "//"
+// BibDirs returns the raw directories to add to the BibTeX search path.
+func (r Repo) BibDirs(extra ...string) []string {
+	dirs := make([]string, 0, len(extra)+1)
+	dirs = appendNonEmpty(dirs, extra...)
+	if r.Root != "" {
+		dirs = append(dirs, filepath.Join(r.Root, bibSubdir))
+	}
+	return dirs
+}
+
+func appendNonEmpty(dst []string, vals ...string) []string {
+	for _, v := range vals {
+		if v != "" {
+			dst = append(dst, v)
+		}
+	}
+	return dst
 }
 
 // inputRefRE matches \input{name}, \include{name}, and \subfile{name}.
@@ -91,7 +88,7 @@ func (r Repo) Resolve(ref string, localDirs ...string) (string, bool) {
 	var roots []string
 	roots = append(roots, localDirs...)
 	if r.Root != "" {
-		for _, d := range TeXDirs {
+		for _, d := range texSubdirs {
 			roots = append(roots, filepath.Join(r.Root, d))
 		}
 		roots = append(roots, r.Root)
