@@ -66,13 +66,13 @@ Usage:
 Commands:
   build, compile   Compile article(s) to dist/<slug>/ (pdf, html, index.md)
   validate         Validate article sources + meta.yaml + snippet references
-  promote          Stage a compiled article into a ffreis-posts checkout (optionally open a PR)
+  promote          Stage a compiled article into a Markdown blog repo checkout (optionally open a PR)
   doctor           Report toolchain availability (tectonic, make4ht, pandoc)
 
 Examples:
-  %s build -articles-root ../ffreis-articles -snippets-root ../ffreis-snippets -slug hello-latex
-  %s validate -articles-root ../ffreis-articles
-  %s promote -slug hello-latex -posts-dir ../ffreis-posts -open-pr
+  %s build -articles-root ../articles -snippets-root ../snippets -slug hello-latex
+  %s validate -articles-root ../articles
+  %s promote -slug hello-latex -posts-dir ../posts -open-pr
   %s doctor
 `, programName, programName, programName, programName, programName, programName)
 }

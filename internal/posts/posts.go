@@ -1,8 +1,8 @@
 // Package posts turns a compiled article's raw Markdown body into a
-// ffreis-posts-compatible index.md (YAML frontmatter + Medium-safe GFM), and
-// re-implements the ffreis-posts validation rules so the compiler can guarantee
+// posts-repo-compatible index.md (YAML frontmatter + Medium-safe GFM), and
+// re-implements the posts repo's validation rules so the compiler can guarantee
 // a promoted post will pass downstream CI. The rule set intentionally mirrors
-// ffreis-posts/scripts/validate-posts.py field-for-field.
+// the posts repo's validate-posts.py field-for-field.
 package posts
 
 import (
@@ -13,7 +13,7 @@ import (
 	"github.com/FelipeFuhr/ffreis-latex-compiler/internal/article"
 )
 
-// Limits and shapes shared with ffreis-posts/scripts/validate-posts.py.
+// Limits and shapes shared with the posts repo's validate-posts.py.
 const (
 	MaxTitle      = 250
 	MaxTags       = 5
@@ -30,7 +30,7 @@ var (
 	extractedImgRE = regexp.MustCompile(`(!\[[^\]]*\]\()(\.?/?images/)`)
 )
 
-// Frontmatter is the ffreis-posts post header. Field order is fixed by Render.
+// Frontmatter is the posts-repo post header. Field order is fixed by Render.
 type Frontmatter struct {
 	Title           string
 	Date            string
@@ -94,7 +94,7 @@ func AssembleIndexMD(f Frontmatter, body string) string {
 }
 
 // NormalizeImageLinks rewrites pandoc's extracted-media links (images/… or
-// /images/…) to the ./images/… convention ffreis-posts expects.
+// /images/…) to the ./images/… convention the posts repo expects.
 func NormalizeImageLinks(body string) string {
 	return extractedImgRE.ReplaceAllString(body, "$1./images/")
 }

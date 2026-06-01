@@ -17,7 +17,7 @@ import (
 func Run(args []string, _ *slog.Logger) error {
 	fs := flag.NewFlagSet("validate", flag.ContinueOnError)
 	articlesRoot := fs.String("articles-root", ".", "root containing articles/<slug>/")
-	snippetsRoot := fs.String("snippets-root", "", "root of the ffreis-snippets repo (optional)")
+	snippetsRoot := fs.String("snippets-root", "", "root of the snippets repo (optional)")
 	slug := fs.String("slug", "", "validate only this article slug (default: all)")
 	if err := fs.Parse(args); err != nil {
 		return err

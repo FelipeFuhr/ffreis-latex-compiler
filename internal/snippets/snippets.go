@@ -1,4 +1,4 @@
-// Package snippets models the ffreis-snippets repository: a library of reusable
+// Package snippets models the snippets repository: a library of reusable
 // LaTeX fragments (preambles, classes, macros, bib, figures) that articles pull
 // in by name. It produces the TEXINPUTS/BIBINPUTS search paths the TeX engines
 // need, and resolves local \input/\include references for validation.
@@ -11,13 +11,13 @@ import (
 	"strings"
 )
 
-// Standard top-level directories inside a ffreis-snippets repo.
+// Standard top-level directories inside a snippets repo.
 var (
 	texSubdirs = []string{"preambles", "classes", "macros", "figures"}
 	bibSubdir  = "bib"
 )
 
-// Repo is a ffreis-snippets checkout rooted at Root. A zero/empty Root means
+// Repo is a snippets-repo checkout rooted at Root. A zero/empty Root means
 // "no snippets repo configured" — TexDirs/BibDirs then contribute nothing
 // beyond the caller-supplied extras.
 type Repo struct {

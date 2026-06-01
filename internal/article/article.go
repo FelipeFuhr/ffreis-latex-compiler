@@ -1,7 +1,7 @@
-// Package article loads LaTeX article sources from a ffreis-articles-shaped
+// Package article loads LaTeX article sources from a articles-style
 // repository. Each article lives in articles/<slug>/ and is described by a
 // sidecar meta.yaml whose schema is deliberately a superset of the
-// ffreis-posts frontmatter schema, so a compiled article can be promoted into
+// the posts repo frontmatter schema, so a compiled article can be promoted into
 // the blog without reshaping its metadata.
 package article
 
@@ -25,7 +25,7 @@ const MetaName = "meta.yaml"
 const ImagesDir = "images"
 
 // Meta is the parsed contents of an article's meta.yaml. Title and Date are
-// required; everything else is optional. Field names mirror the ffreis-posts
+// required; everything else is optional. Field names mirror the the posts repo
 // frontmatter so promotion is a straight copy.
 type Meta struct {
 	Title              string   `yaml:"title"`
@@ -37,7 +37,7 @@ type Meta struct {
 	Thumbnail          string   `yaml:"thumbnail"`
 	AvailableLanguages []string `yaml:"available_languages"`
 	// PostSlug optionally overrides the slug used when promoting to
-	// ffreis-posts. When empty the article's directory slug is used.
+	// the posts repo. When empty the article's directory slug is used.
 	PostSlug string `yaml:"post_slug"`
 }
 
@@ -50,7 +50,7 @@ type Article struct {
 	Images  []string // basenames present under images/ (sorted)
 }
 
-// PostSlug returns the slug to use when promoting to ffreis-posts.
+// PostSlug returns the slug to use when promoting to the posts repo.
 func (a *Article) PostSlug() string {
 	if a.Meta.PostSlug != "" {
 		return a.Meta.PostSlug

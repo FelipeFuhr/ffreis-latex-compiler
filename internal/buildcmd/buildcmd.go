@@ -17,7 +17,7 @@ import (
 func Run(args []string, logger *slog.Logger) error {
 	fs := flag.NewFlagSet("build", flag.ContinueOnError)
 	articlesRoot := fs.String("articles-root", ".", "root containing articles/<slug>/")
-	snippetsRoot := fs.String("snippets-root", "", "root of the ffreis-snippets repo (optional)")
+	snippetsRoot := fs.String("snippets-root", "", "root of the snippets repo (optional)")
 	out := fs.String("out", "dist", "output directory")
 	slug := fs.String("slug", "", "compile only this article slug (default: all)")
 	formatsStr := fs.String("formats", "pdf,html,md", "comma-separated output formats: pdf,html,md")

@@ -1,4 +1,4 @@
-// Package promote stages a compiled article into a ffreis-posts checkout: it
+// Package promote stages a compiled article into a posts-repo checkout: it
 // copies dist/<slug>/index.md and images/ into <posts>/posts/<post-slug>/ and
 // re-runs the post validation so a broken post is never left behind. Opening a
 // pull request is layered on top in the command (promotecmd); this core only
@@ -19,7 +19,7 @@ import (
 type Options struct {
 	ArticlesRoot string // to resolve the article's post_slug
 	OutRoot      string // build output root (dist)
-	PostsDir     string // ffreis-posts checkout root (contains posts/)
+	PostsDir     string // posts-repo checkout root (contains posts/)
 	Slug         string // article slug (directory under dist/ and articles/)
 	DryRun       bool   // when true, do not write — only report what would happen
 }

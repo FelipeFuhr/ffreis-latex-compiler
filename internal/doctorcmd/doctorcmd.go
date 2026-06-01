@@ -22,7 +22,7 @@ type tool struct {
 var tools = []tool{
 	{name: "tectonic", format: "pdf", purpose: "PDF (auto-downloads LaTeX packages)"},
 	{name: "make4ht", format: "html", purpose: "HTML (tex4ht; ships with TeX Live)"},
-	{name: "pandoc", format: "md", purpose: "Medium-safe Markdown for ffreis-posts"},
+	{name: "pandoc", format: "md", purpose: "Medium-safe Markdown for the posts repo"},
 }
 
 // lookPath is overridable in tests.

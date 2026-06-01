@@ -102,9 +102,9 @@ docker-build: container-build ## Backward-compatible alias
 # tex4ht + pandoc), so nothing needs to be installed on the host beyond podman.
 # `promote`/`doctor`/`validate-articles` are pure Go (no LaTeX tools) and run
 # natively via `go run`.
-ARTICLES_ROOT ?= ../ffreis-articles
-SNIPPETS_ROOT ?= ../ffreis-snippets
-POSTS_DIR     ?= ../ffreis-posts
+ARTICLES_ROOT ?= ../articles
+SNIPPETS_ROOT ?= ../snippets
+POSTS_DIR     ?= ../posts
 OUT           ?= dist
 SLUG          ?=
 FORMATS       ?= pdf,html,md

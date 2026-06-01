@@ -1,5 +1,5 @@
 // Package validate checks article sources before they are compiled or
-// promoted. It applies the shared ffreis-posts field rules (via posts.CheckFields)
+// promoted. It applies the shared the posts repo field rules (via posts.CheckFields)
 // plus LaTeX-source-specific checks: the slug shape and that every local
 // \input/\include/\subfile reference resolves against the snippets repo or the
 // article directory.
