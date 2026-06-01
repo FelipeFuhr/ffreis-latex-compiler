@@ -1,18 +1,10 @@
+// Command ffreis-latex-compiler compiles LaTeX articles (from a
+// ffreis-articles-shaped repo, using shared fragments from ffreis-snippets)
+// into PDF, HTML, and Medium-safe Markdown for ffreis-posts.
 package main
 
-import (
-	"fmt"
-	"os"
-)
+import "github.com/FelipeFuhr/ffreis-latex-compiler/internal/cli"
 
 func main() {
-	if err := run(); err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
-	}
-}
-
-func run() error {
-	fmt.Println("ffreis-latex-compiler: replace this with your command logic")
-	return nil
+	cli.Run("ffreis-latex-compiler")
 }

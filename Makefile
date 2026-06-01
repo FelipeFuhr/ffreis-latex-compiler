@@ -25,6 +25,7 @@ IMAGE_NAME ?= ffreis-latex-compiler
 
 	container-build docker-build \
 
+	install build build-native validate-articles promote doctor \
 	ci-list install-act ci-local
 
 ## mutation-test: run mutation testing with gremlins (slow — CI only)
@@ -56,8 +57,8 @@ validate: ## Static analysis and compilation check (go vet + build)
 	go vet ./...
 	go build -o /dev/null ./...
 
-test: ## Run unit tests
-	go test ./...
+test: ## Run unit tests (race + shuffle per workspace Go invariant)
+	go test -race -shuffle=on ./...
 
 test-race: ## Run tests with race detector
 	go test -race ./...
@@ -95,6 +96,48 @@ container-build: ## Build container image
 
 docker-build: container-build ## Backward-compatible alias
 
+
+# ── Compiler usage targets ───────────────────────────────────────────────────
+# `build` runs the full LaTeX toolchain inside the container image (tectonic +
+# tex4ht + pandoc), so nothing needs to be installed on the host beyond podman.
+# `promote`/`doctor`/`validate-articles` are pure Go (no LaTeX tools) and run
+# natively via `go run`.
+ARTICLES_ROOT ?= ../ffreis-articles
+SNIPPETS_ROOT ?= ../ffreis-snippets
+POSTS_DIR     ?= ../ffreis-posts
+OUT           ?= dist
+SLUG          ?=
+FORMATS       ?= pdf,html,md
+GO_PKG        := ./cmd/ffreis-latex-compiler
+SLUG_FLAG     := $(if $(SLUG),-slug $(SLUG),)
+
+install: ## Install the compiler binary into GOPATH/bin
+	go install $(GO_PKG)
+
+build: container-build ## Compile article(s) via the toolchain container -> OUT/ (SLUG=… optional)
+	@mkdir -p "$(OUT)" "$(HOME)/.cache/tectonic"
+	$(CONTAINER_COMMAND) run --rm \
+		-v "$(abspath $(OUT))":/work/out \
+		-v "$(abspath $(ARTICLES_ROOT))":/work/articles:ro \
+		-v "$(abspath $(SNIPPETS_ROOT))":/work/snippets:ro \
+		-v "$(HOME)/.cache/tectonic":/root/.cache/Tectonic \
+		"$(IMAGE_NAME):$(IMAGE_TAG)" \
+		build -articles-root /work/articles -snippets-root /work/snippets \
+		-out /work/out $(SLUG_FLAG) -formats $(FORMATS)
+
+build-native: ## Compile natively (requires tectonic, make4ht, pandoc on PATH)
+	go run $(GO_PKG) build -articles-root "$(ARTICLES_ROOT)" -snippets-root "$(SNIPPETS_ROOT)" \
+		-out "$(OUT)" $(SLUG_FLAG) -formats $(FORMATS)
+
+validate-articles: ## Validate article sources (no LaTeX tools needed)
+	go run $(GO_PKG) validate -articles-root "$(ARTICLES_ROOT)" -snippets-root "$(SNIPPETS_ROOT)" $(SLUG_FLAG)
+
+promote: ## Stage a compiled article into POSTS_DIR (SLUG=… ; OPEN_PR=1 to open a PR; DRY_RUN=1 to preview)
+	go run $(GO_PKG) promote -articles-root "$(ARTICLES_ROOT)" -out "$(OUT)" -posts-dir "$(POSTS_DIR)" \
+		-slug "$(SLUG)" $(if $(filter 1,$(OPEN_PR)),-open-pr,) $(if $(filter 1,$(DRY_RUN)),-dry-run,)
+
+doctor: ## Report toolchain availability (tectonic, make4ht, pandoc)
+	go run $(GO_PKG) doctor
 
 lefthook-bootstrap: ## Download lefthook binary into ./.bin
 	LEFTHOOK_VERSION="$(LEFTHOOK_VERSION)" BIN_DIR="$(LEFTHOOK_DIR)" bash ./scripts/bootstrap_lefthook.sh

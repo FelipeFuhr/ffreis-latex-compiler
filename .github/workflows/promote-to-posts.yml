@@ -1,0 +1,90 @@
+name: promote-to-posts
+
+# Manually-triggered ONLY. Compiles one article's Markdown and opens a pull
+# request adding it to ffreis-posts. Never runs automatically, never merges.
+#
+# Promotion needs only the Markdown target (pandoc) — the PDF/HTML toolchain
+# (tectonic, tex4ht) is intentionally not installed here, keeping this fast.
+on:
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: "Article slug under ffreis-articles/articles/<slug>/"
+        required: true
+        type: string
+      dry_run:
+        description: "Stage + validate only; do not open a PR"
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: promote-to-posts-${{ github.event.inputs.slug }}
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout compiler
+        uses: actions/checkout@v4
+
+      - name: Checkout articles
+        uses: actions/checkout@v4
+        with:
+          repository: FelipeFuhr/ffreis-articles
+          path: _articles
+          token: ${{ secrets.FLEET_CONTENT_PAT }}
+
+      - name: Checkout snippets
+        uses: actions/checkout@v4
+        with:
+          repository: FelipeFuhr/ffreis-snippets
+          path: _snippets
+          token: ${{ secrets.FLEET_CONTENT_PAT }}
+
+      - name: Checkout posts (PR target)
+        uses: actions/checkout@v4
+        with:
+          repository: FelipeFuhr/ffreis-posts
+          path: _posts
+          token: ${{ secrets.FLEET_CONTENT_PAT }}
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install pandoc
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends pandoc
+
+      - name: Compile Markdown
+        run: |
+          go run ./cmd/ffreis-latex-compiler build \
+            -articles-root _articles -snippets-root _snippets \
+            -out dist -slug "${{ github.event.inputs.slug }}" -formats md
+
+      - name: Configure git identity (posts checkout)
+        working-directory: _posts
+        run: |
+          git config user.name "ffreis-latex-compiler[bot]"
+          git config user.email "noreply@ffreis.com"
+
+      - name: Promote (open PR)
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.FLEET_CONTENT_PAT }}
+        run: |
+          go run ./cmd/ffreis-latex-compiler promote \
+            -articles-root _articles -out dist -posts-dir _posts \
+            -slug "${{ github.event.inputs.slug }}" -open-pr
+
+      - name: Promote (dry run)
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: |
+          go run ./cmd/ffreis-latex-compiler promote \
+            -articles-root _articles -out dist -posts-dir _posts \
+            -slug "${{ github.event.inputs.slug }}" -dry-run

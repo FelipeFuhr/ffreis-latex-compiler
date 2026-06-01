@@ -1,6 +1,72 @@
 # Agent Context
 
-**This repo:** `ffreis-latex-compiler` — Go CLI that compiles LaTeX articles to PDF, HTML, and Medium-safe Markdown for ffreis-posts.
+**This repo:** `ffreis-latex-compiler` — Go CLI that compiles LaTeX articles to
+PDF, HTML, and Medium-safe Markdown. It is the LaTeX analog of
+`ffreis-website-compiler` and follows the same conventions (handwritten CLI
+dispatch on `os.Args[1]`, `log/slog` via `internal/logx`, ports-and-adapters).
+
+## How it fits the fleet
+
+- **`ffreis-articles`** — article **sources** (`articles/<slug>/main.tex` + `meta.yaml`).
+- **`ffreis-snippets`** — reusable LaTeX fragments (preambles, classes, macros,
+  bib, figures), added to `TEXINPUTS`/`BIBINPUTS` at compile time.
+- **`ffreis-posts`** — finished blog Markdown. The compiler can **promote** a
+  compiled article into it (manual only).
+
+## Toolchain (ports + adapters, `internal/engine`)
+
+Each format sits behind a `Renderer`; adapters shell out via an injectable
+`Runner` (so command/env construction is unit-tested without the binaries):
+
+| Format | Tool | Notes |
+|---|---|---|
+| PDF | `tectonic` | auto-downloads CTAN packages on demand — the "behind the scenes" core |
+| HTML | `make4ht` (tex4ht) | ships with TeX Live, which Tectonic deliberately omits |
+| Markdown | `pandoc` | `--to=gfm-raw_html` ⇒ no raw HTML, Medium-safe |
+
+**These three do not coexist in one lightweight package**: Tectonic is a single
+binary; tex4ht needs a TeX Live install. The full toolchain therefore lives in
+`containers/Dockerfile.cli` (TeX Live base + tectonic + pandoc + the Go binary).
+`make build` runs the compiler **inside that podman image**, so the host needs
+nothing but a container runtime. `make doctor` reports native tool availability;
+`make build-native` runs against host-installed tools.
+
+## Commands
+
+```bash
+go run ./cmd/ffreis-latex-compiler build    -articles-root ../ffreis-articles -snippets-root ../ffreis-snippets -slug <slug> -formats pdf,html,md
+go run ./cmd/ffreis-latex-compiler validate -articles-root ../ffreis-articles -snippets-root ../ffreis-snippets
+go run ./cmd/ffreis-latex-compiler promote  -articles-root ../ffreis-articles -out dist -posts-dir ../ffreis-posts -slug <slug> [-open-pr|-dry-run]
+go run ./cmd/ffreis-latex-compiler doctor
+```
+
+Output per article: `dist/<slug>/{<slug>.pdf, <slug>.html, index.md, images/}`.
+The `index.md` + `images/` subtree is shaped exactly like a `ffreis-posts/posts/<slug>/`
+dir, so `promote` is a copy. `internal/posts` re-implements the ffreis-posts
+validation rules (`validate-posts.py`) so a promoted post can't bounce in CI.
+
+## Promotion is manual, never automatic
+
+- `make promote SLUG=… [OPEN_PR=1] [DRY_RUN=1]` (pure Go; needs only pandoc, not
+  the TeX toolchain — promotion uses the Markdown output).
+- `.github/workflows/promote-to-posts.yml` is **`workflow_dispatch`-only**: it
+  compiles one slug's Markdown, opens a **draft PR** in `ffreis-posts`, and never
+  merges. Needs secret `FLEET_CONTENT_PAT` (read on articles/snippets, PR-write
+  on posts). `openPullRequest` refuses to commit onto `main`/`develop`.
+
+## Medium caveat
+
+Markdown is best-effort for prose. Medium renders no LaTeX math or complex
+floats — those stay high-fidelity only in PDF/HTML. The validator flags raw HTML
+(`<div>` etc.), title >250 chars, >5 tags, missing/mismatched slug, and missing
+images — the same gate `ffreis-posts` enforces.
+
+## Local toolchain note (sandbox)
+
+The Go toolchain auto-downloaded by `GOTOOLCHAIN=auto` (module distribution) ships
+without `covdata`, so `go test -race -coverprofile` over no-test packages errors
+locally. `make coverage-gate` runs coverage **without** `-race` and works; real CI
+(setup-go) has `covdata`. Use `GOTOOLCHAIN=go1.25.10` locally.
 
 ## Non-obvious facts
 
