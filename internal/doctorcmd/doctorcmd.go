@@ -22,7 +22,7 @@ type tool struct {
 var tools = []tool{
 	{name: "tectonic", format: "pdf", purpose: "PDF (auto-downloads LaTeX packages)"},
 	{name: "make4ht", format: "html", purpose: "HTML (tex4ht; ships with TeX Live)"},
-	{name: "pandoc", format: "md", purpose: "Medium-safe Markdown for ffreis-posts"},
+	{name: "pandoc", format: "md", purpose: "Medium-safe Markdown for the posts repo"},
 }
 
 // lookPath is overridable in tests.
@@ -39,26 +39,28 @@ func Run(args []string, _ *slog.Logger) error {
 }
 
 func check(w io.Writer, strict bool) error {
-	fmt.Fprintln(w, "ffreis-latex-compiler toolchain:")
+	pf := func(format string, a ...any) { _, _ = fmt.Fprintf(w, format, a...) }
+
+	pf("ffreis-latex-compiler toolchain:\n")
 	missing := 0
 	for _, t := range tools {
 		path, err := lookPath(t.name)
 		if err != nil {
 			missing++
-			fmt.Fprintf(w, "  ✗  %-9s MISSING — %s\n", t.name, t.purpose)
+			pf("  ✗  %-9s MISSING — %s\n", t.name, t.purpose)
 			continue
 		}
-		fmt.Fprintf(w, "  ✓  %-9s %s — %s\n", t.name, path, t.purpose)
+		pf("  ✓  %-9s %s — %s\n", t.name, path, t.purpose)
 	}
-	fmt.Fprintln(w)
+	pf("\n")
 	if missing > 0 {
-		fmt.Fprintf(w, "%d tool(s) missing. Install them, or run the compiler via the bundled\n", missing)
-		fmt.Fprintln(w, "container image (`make build` uses podman) where the full toolchain is present.")
+		pf("%d tool(s) missing. Install them, or run the compiler via the bundled\n", missing)
+		pf("container image (`make build` uses podman) where the full toolchain is present.\n")
 		if strict {
 			return fmt.Errorf("%d required tool(s) missing", missing)
 		}
 		return nil
 	}
-	fmt.Fprintln(w, "All tools present — native compilation is available.")
+	pf("All tools present — native compilation is available.\n")
 	return nil
 }

@@ -1,5 +1,5 @@
 // Package promotecmd parses flags for the `promote` command. It stages a
-// compiled article into a ffreis-posts checkout (via internal/promote) and,
+// compiled article into a posts-repo checkout (via internal/promote) and,
 // with -open-pr, branches + commits + opens a pull request. It never pushes to
 // main and never auto-merges.
 package promotecmd
@@ -25,7 +25,7 @@ func Run(args []string, logger *slog.Logger) error {
 	fs := flag.NewFlagSet("promote", flag.ContinueOnError)
 	articlesRoot := fs.String("articles-root", ".", "root containing articles/<slug>/")
 	out := fs.String("out", "dist", "build output directory")
-	postsDir := fs.String("posts-dir", "", "ffreis-posts checkout root (required)")
+	postsDir := fs.String("posts-dir", "", "posts-repo checkout root (required)")
 	slug := fs.String("slug", "", "article slug to promote (required)")
 	openPR := fs.Bool("open-pr", false, "branch, commit, push, and open a PR in the posts repo")
 	dryRun := fs.Bool("dry-run", false, "report what would happen without writing")
@@ -87,7 +87,7 @@ func openPullRequest(ctx context.Context, logger *slog.Logger, postsDir, branch,
 	steps := [][]string{
 		{"git", "checkout", "-b", branch},
 		{"git", "add", postPath},
-		{"git", "commit", "-m", "post: add " + postSlug + " (promoted from ffreis-articles)"},
+		{"git", "commit", "-m", "post: add " + postSlug + " (promoted from the articles repo)"},
 		{"git", "push", "-u", "origin", branch},
 	}
 	for _, s := range steps {
@@ -98,7 +98,7 @@ func openPullRequest(ctx context.Context, logger *slog.Logger, postsDir, branch,
 	}
 
 	title := fmt.Sprintf("post: %s", postSlug)
-	const body = "Promoted from ffreis-articles by ffreis-latex-compiler.\n\nReview the rendered Markdown before merging. Auto-merge is intentionally disabled."
+	const body = "Promoted from the articles repo by ffreis-latex-compiler.\n\nReview the rendered Markdown before merging. Auto-merge is intentionally disabled."
 	out, err := git(ctx, postsDir, "gh", "pr", "create", "--draft", "--title", title, "--body", body)
 	if err != nil {
 		return fmt.Errorf("gh pr create: %w\n%s", err, out)
@@ -108,7 +108,7 @@ func openPullRequest(ctx context.Context, logger *slog.Logger, postsDir, branch,
 }
 
 func execGit(ctx context.Context, dir, name string, args ...string) (string, error) {
-	cmd := exec.CommandContext(ctx, name, args...)
+	cmd := exec.CommandContext(ctx, name, args...) //nolint:gosec // git/gh invocation with controlled args is the purpose of this helper
 	cmd.Dir = dir
 	cmd.Env = os.Environ()
 	b, err := cmd.CombinedOutput()

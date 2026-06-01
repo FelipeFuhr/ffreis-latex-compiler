@@ -6,7 +6,7 @@
 #
 #   * tectonic — PDF, auto-downloads LaTeX packages on demand
 #   * tex4ht / make4ht — HTML (ships with TeX Live, which is the base image)
-#   * pandoc — Medium-safe Markdown for ffreis-posts
+#   * pandoc — Medium-safe Markdown for a blog/posts repo
 #
 # The base TeX Live image is large (multi-GB); the build is the heavy step and
 # is normally done in CI (docker-build.yml). Pin the base tag / tectonic version

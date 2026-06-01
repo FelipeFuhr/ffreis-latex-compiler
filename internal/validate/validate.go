@@ -1,5 +1,5 @@
 // Package validate checks article sources before they are compiled or
-// promoted. It applies the shared ffreis-posts field rules (via posts.CheckFields)
+// promoted. It applies the shared the posts repo field rules (via posts.CheckFields)
 // plus LaTeX-source-specific checks: the slug shape and that every local
 // \input/\include/\subfile reference resolves against the snippets repo or the
 // article directory.
@@ -78,7 +78,7 @@ func validateArticle(a *article.Article, snip snippets.Repo) posts.Result {
 }
 
 func checkSnippetRefs(a *article.Article, snip snippets.Repo) []string {
-	src, err := os.ReadFile(a.MainTeX) //nolint:gosec // MainTeX is under a trusted articles root
+	src, err := os.ReadFile(a.MainTeX)
 	if err != nil {
 		return []string{fmt.Sprintf("cannot read %s: %v", article.MainTeXName, err)}
 	}

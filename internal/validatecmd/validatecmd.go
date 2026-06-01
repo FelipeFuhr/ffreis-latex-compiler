@@ -17,7 +17,7 @@ import (
 func Run(args []string, _ *slog.Logger) error {
 	fs := flag.NewFlagSet("validate", flag.ContinueOnError)
 	articlesRoot := fs.String("articles-root", ".", "root containing articles/<slug>/")
-	snippetsRoot := fs.String("snippets-root", "", "root of the ffreis-snippets repo (optional)")
+	snippetsRoot := fs.String("snippets-root", "", "root of the snippets repo (optional)")
 	slug := fs.String("slug", "", "validate only this article slug (default: all)")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -36,31 +36,33 @@ func Run(args []string, _ *slog.Logger) error {
 
 // report prints results and returns an error if any article has errors.
 func report(w io.Writer, results []posts.Result) error {
+	pf := func(format string, a ...any) { _, _ = fmt.Fprintf(w, format, a...) }
+
 	totalErr, totalWarn := 0, 0
 	for _, r := range results {
 		totalErr += len(r.Errors)
 		totalWarn += len(r.Warnings)
 		if r.OK() && len(r.Warnings) == 0 {
-			fmt.Fprintf(w, "articles/%s/  ✓\n", r.Slug)
+			pf("articles/%s/  ✓\n", r.Slug)
 			continue
 		}
-		fmt.Fprintf(w, "\narticles/%s/\n", r.Slug)
+		pf("\narticles/%s/\n", r.Slug)
 		for _, m := range r.Errors {
-			fmt.Fprintf(w, "  ✗  %s\n", m)
+			pf("  ✗  %s\n", m)
 		}
 		for _, m := range r.Warnings {
-			fmt.Fprintf(w, "  ⚠  %s\n", m)
+			pf("  ⚠  %s\n", m)
 		}
 	}
-	fmt.Fprintln(w)
+	pf("\n")
 	if totalErr > 0 {
-		fmt.Fprintf(w, "%d error(s), %d warning(s) — fix errors before compiling or promoting.\n", totalErr, totalWarn)
+		pf("%d error(s), %d warning(s) — fix errors before compiling or promoting.\n", totalErr, totalWarn)
 		return fmt.Errorf("%d article(s) failed validation", totalErr)
 	}
 	if totalWarn > 0 {
-		fmt.Fprintf(w, "0 errors, %d warning(s).\n", totalWarn)
+		pf("0 errors, %d warning(s).\n", totalWarn)
 		return nil
 	}
-	fmt.Fprintln(w, "All articles valid.")
+	pf("All articles valid.\n")
 	return nil
 }

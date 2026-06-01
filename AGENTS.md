@@ -5,13 +5,27 @@ PDF, HTML, and Medium-safe Markdown. It is the LaTeX analog of
 `ffreis-website-compiler` and follows the same conventions (handwritten CLI
 dispatch on `os.Args[1]`, `log/slog` via `internal/logx`, ports-and-adapters).
 
-## How it fits the fleet
+## Public repo — private-repo hygiene
 
-- **`ffreis-articles`** — article **sources** (`articles/<slug>/main.tex` + `meta.yaml`).
-- **`ffreis-snippets`** — reusable LaTeX fragments (preambles, classes, macros,
-  bib, figures), added to `TEXINPUTS`/`BIBINPUTS` at compile time.
-- **`ffreis-posts`** — finished blog Markdown. The compiler can **promote** a
-  compiled article into it (manual only).
+This is a **public** GitHub repository. When writing commit messages, PR titles,
+PR descriptions, code comments, or any other user-visible text, **never name
+private repos** — the article-source, snippets, or blog/posts repos that consume
+this tool, or any internal infra. Use generic terms: "the articles repo", "the
+snippets repo", "the posts/blog repo", "a private consumer". The compiler core is
+deliberately generic: it takes `-articles-root`, `-snippets-root`, and
+`-posts-dir` as flags and hardcodes no consumer.
+
+## Inputs and outputs
+
+The tool is consumer-agnostic. It expects:
+
+- an **articles** root containing `articles/<slug>/{main.tex, meta.yaml, images/, refs.bib}`;
+- an optional **snippets** root (reusable LaTeX fragments: `preambles/ classes/
+  macros/ bib/ figures/`), added to `TEXINPUTS`/`BIBINPUTS` at compile time;
+- for `promote`, a checkout of a **Markdown blog repo** (the `posts/<slug>/` layout).
+
+`meta.yaml` is a superset of a typical blog frontmatter schema, so a compiled
+article promotes into a blog without reshaping metadata.
 
 ## Toolchain (ports + adapters, `internal/engine`)
 
@@ -24,6 +38,11 @@ Each format sits behind a `Renderer`; adapters shell out via an injectable
 | HTML | `make4ht` (tex4ht) | ships with TeX Live, which Tectonic deliberately omits |
 | Markdown | `pandoc` | `--to=gfm-raw_html` ⇒ no raw HTML, Medium-safe |
 
+**Search paths.** Tectonic ignores `TEXINPUTS` by design, so snippet directories are
+passed to it as `-Z search-path=<dir>` (one per dir); make4ht/TeX Live gets the same dirs
+via the `TEXINPUTS`/`BIBINPUTS` env. `engine.Job` therefore carries raw `TexDirs`/`BibDirs`
+(from `snippets.Repo.TexDirs/BibDirs`), and each adapter formats them itself.
+
 **These three do not coexist in one lightweight package**: Tectonic is a single
 binary; tex4ht needs a TeX Live install. The full toolchain therefore lives in
 `containers/Dockerfile.cli` (TeX Live base + tectonic + pandoc + the Go binary).
@@ -34,32 +53,37 @@ nothing but a container runtime. `make doctor` reports native tool availability;
 ## Commands
 
 ```bash
-go run ./cmd/ffreis-latex-compiler build    -articles-root ../ffreis-articles -snippets-root ../ffreis-snippets -slug <slug> -formats pdf,html,md
-go run ./cmd/ffreis-latex-compiler validate -articles-root ../ffreis-articles -snippets-root ../ffreis-snippets
-go run ./cmd/ffreis-latex-compiler promote  -articles-root ../ffreis-articles -out dist -posts-dir ../ffreis-posts -slug <slug> [-open-pr|-dry-run]
+go run ./cmd/ffreis-latex-compiler build    -articles-root ../articles -snippets-root ../snippets -slug <slug> -formats pdf,html,md
+go run ./cmd/ffreis-latex-compiler validate -articles-root ../articles -snippets-root ../snippets
+go run ./cmd/ffreis-latex-compiler promote  -articles-root ../articles -out dist -posts-dir ../posts -slug <slug> [-open-pr|-dry-run]
 go run ./cmd/ffreis-latex-compiler doctor
 ```
 
 Output per article: `dist/<slug>/{<slug>.pdf, <slug>.html, index.md, images/}`.
-The `index.md` + `images/` subtree is shaped exactly like a `ffreis-posts/posts/<slug>/`
-dir, so `promote` is a copy. `internal/posts` re-implements the ffreis-posts
-validation rules (`validate-posts.py`) so a promoted post can't bounce in CI.
+The `index.md` + `images/` subtree is shaped exactly like a blog repo's
+`posts/<slug>/` dir, so `promote` is a copy. `internal/posts` re-implements a
+typical blog's `validate-posts.py` rules so a promoted post can't bounce in CI.
 
 ## Promotion is manual, never automatic
 
+`promote` only ever stages a compiled post and (with `-open-pr`) opens a **PR** in
+the target blog repo — it never auto-merges, and `openPullRequest` refuses to
+commit onto `main`/`develop`.
+
 - `make promote SLUG=… [OPEN_PR=1] [DRY_RUN=1]` (pure Go; needs only pandoc, not
   the TeX toolchain — promotion uses the Markdown output).
-- `.github/workflows/promote-to-posts.yml` is **`workflow_dispatch`-only**: it
-  compiles one slug's Markdown, opens a **draft PR** in `ffreis-posts`, and never
-  merges. Needs secret `FLEET_CONTENT_PAT` (read on articles/snippets, PR-write
-  on posts). `openPullRequest` refuses to commit onto `main`/`develop`.
+- **The CI glue that wires this to specific private repos lives in the private
+  article-source repo, not here** (a `workflow_dispatch` workflow that checks out
+  this public compiler + the private content repos and runs `build` + `promote
+  -open-pr`). Keeping that out of this public repo is why no private repo names or
+  fleet token secrets appear in this tree.
 
 ## Medium caveat
 
 Markdown is best-effort for prose. Medium renders no LaTeX math or complex
 floats — those stay high-fidelity only in PDF/HTML. The validator flags raw HTML
 (`<div>` etc.), title >250 chars, >5 tags, missing/mismatched slug, and missing
-images — the same gate `ffreis-posts` enforces.
+images — the same gate the downstream blog repo enforces.
 
 ## Local toolchain note (sandbox)
 

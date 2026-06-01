@@ -3,7 +3,6 @@ package snippets
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -17,34 +16,44 @@ func touch(t *testing.T, path string) {
 	}
 }
 
-func TestTexInputsFormat(t *testing.T) {
+func TestTexDirs(t *testing.T) {
 	r := Repo{Root: "/snips"}
-	got := r.TexInputs("/article")
-	// article dir first (recursive), then snippets root (recursive), then empty.
-	if !strings.HasPrefix(got, "/article//:") {
-		t.Errorf("article dir not first: %q", got)
+	got := r.TexDirs("/article")
+	// article dir first, then snippets root, then each standard subdir.
+	if len(got) == 0 || got[0] != "/article" {
+		t.Errorf("article dir not first: %v", got)
 	}
-	if !strings.Contains(got, "/snips//") {
-		t.Errorf("snippets root missing: %q", got)
+	want := map[string]bool{
+		"/snips": true, "/snips/preambles": true, "/snips/classes": true,
+		"/snips/macros": true, "/snips/figures": true,
 	}
-	if !strings.HasSuffix(got, ":") {
-		t.Errorf("missing trailing empty entry: %q", got)
+	for w := range want {
+		found := false
+		for _, d := range got {
+			if d == w {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("missing search dir %q in %v", w, got)
+		}
 	}
 }
 
-func TestTexInputsEmptyRoot(t *testing.T) {
-	r := Repo{}
-	got := r.TexInputs()
-	if got != "" {
-		t.Errorf("empty repo, no extras should yield empty trailing entry only, got %q", got)
+func TestTexDirsEmptyRoot(t *testing.T) {
+	if got := (Repo{}).TexDirs(); len(got) != 0 {
+		t.Errorf("empty repo with no extras should yield no dirs, got %v", got)
+	}
+	// Empty extras are dropped.
+	if got := (Repo{}).TexDirs(""); len(got) != 0 {
+		t.Errorf("empty extra should be dropped, got %v", got)
 	}
 }
 
-func TestBibInputs(t *testing.T) {
-	r := Repo{Root: "/snips"}
-	got := r.BibInputs()
-	if !strings.Contains(got, filepath.Join("/snips", "bib")+"//") {
-		t.Errorf("bib dir missing: %q", got)
+func TestBibDirs(t *testing.T) {
+	got := Repo{Root: "/snips"}.BibDirs("/article")
+	if len(got) != 2 || got[0] != "/article" || got[1] != filepath.Join("/snips", "bib") {
+		t.Errorf("unexpected bib dirs: %v", got)
 	}
 }
 

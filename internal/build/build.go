@@ -1,6 +1,6 @@
 // Package build orchestrates compilation: it loads article sources, wires up
 // the snippets search paths, drives the per-format engines, and post-processes
-// the Markdown target into a ffreis-posts-shaped index.md + images/ tree. It is
+// the Markdown target into a posts-repo-shaped index.md + images/ tree. It is
 // deliberately decoupled from flag parsing (see internal/buildcmd) and from the
 // concrete engines (injected as a RendererSet) so it can be unit-tested with
 // fakes and without the real toolchain.
@@ -23,7 +23,7 @@ import (
 // Options configures a build run.
 type Options struct {
 	ArticlesRoot string          // root containing articles/<slug>/
-	SnippetsRoot string          // root of the ffreis-snippets repo ("" = none)
+	SnippetsRoot string          // root of the snippets repo ("" = none)
 	OutRoot      string          // output root (dist)
 	Slug         string          // single article slug; "" = all articles
 	Formats      []engine.Format // formats to produce
@@ -115,7 +115,7 @@ func selectArticles(opts Options) ([]*article.Article, error) {
 
 func buildOne(ctx context.Context, logger *slog.Logger, opts Options, rs RendererSet, snip snippets.Repo, a *article.Article) error {
 	outDir := filepath.Join(opts.OutRoot, a.Slug)
-	if err := os.MkdirAll(outDir, 0o755); err != nil {
+	if err := os.MkdirAll(outDir, 0o750); err != nil {
 		return err
 	}
 	job := engine.Job{
@@ -123,8 +123,8 @@ func buildOne(ctx context.Context, logger *slog.Logger, opts Options, rs Rendere
 		WorkDir:   a.Dir,
 		OutDir:    outDir,
 		Slug:      a.Slug,
-		TexInputs: snip.TexInputs(a.Dir),
-		BibInputs: snip.BibInputs(a.Dir),
+		TexDirs:   snip.TexDirs(a.Dir),
+		BibDirs:   snip.BibDirs(a.Dir),
 	}
 
 	for _, f := range opts.Formats {
@@ -146,7 +146,7 @@ func buildOne(ctx context.Context, logger *slog.Logger, opts Options, rs Rendere
 	return nil
 }
 
-// finalizeMarkdown turns the raw pandoc body into a ffreis-posts index.md:
+// finalizeMarkdown turns the raw pandoc body into a posts-repo index.md:
 // normalise image links, prepend generated frontmatter, copy the article's
 // images/ dir, and drop the intermediate body file.
 func finalizeMarkdown(a *article.Article, outDir, bodyPath string) error {

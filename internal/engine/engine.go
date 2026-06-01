@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 // Format identifies an output target.
@@ -26,12 +27,12 @@ const (
 // directory (commands run there so relative \input/\graphicspath resolve);
 // OutDir is the per-slug output directory under dist/.
 type Job struct {
-	SourceTeX string // absolute path to main.tex
-	WorkDir   string // directory to run the tool in (article dir)
-	OutDir    string // output directory (dist/<slug>)
-	Slug      string // canonical slug; output artifacts are named <slug>.<ext>
-	TexInputs string // value for TEXINPUTS (may be empty)
-	BibInputs string // value for BIBINPUTS (may be empty)
+	SourceTeX string   // absolute path to main.tex
+	WorkDir   string   // directory to run the tool in (article dir)
+	OutDir    string   // output directory (dist/<slug>)
+	Slug      string   // canonical slug; output artifacts are named <slug>.<ext>
+	TexDirs   []string // directories to add to the TeX search path
+	BibDirs   []string // directories to add to the BibTeX search path
 }
 
 // Renderer turns a Job into an artifact of a single Format.
@@ -50,7 +51,7 @@ type Runner func(ctx context.Context, dir string, env []string, name string, arg
 // ExecRunner is the production Runner: it runs the command and streams its
 // stderr through for diagnostics.
 func ExecRunner(ctx context.Context, dir string, env []string, name string, args ...string) error {
-	cmd := exec.CommandContext(ctx, name, args...)
+	cmd := exec.CommandContext(ctx, name, args...) //nolint:gosec // invoking the configured LaTeX toolchain binary is the purpose of this adapter
 	cmd.Dir = dir
 	cmd.Env = append(os.Environ(), env...)
 	cmd.Stdout = os.Stderr // tool chatter goes to stderr; stdout stays clean
@@ -67,14 +68,30 @@ func toolAvailable(name string) bool {
 	return err == nil
 }
 
-// jobEnv assembles the TEXINPUTS/BIBINPUTS environment slice for a Job.
+// jobEnv assembles the TEXINPUTS/BIBINPUTS environment slice for a Job. This is
+// honoured by TeX Live engines (make4ht); tectonic ignores it and instead uses
+// the `-Z search-path` flags built from the same directories.
 func jobEnv(j Job) []string {
 	var env []string
-	if j.TexInputs != "" {
-		env = append(env, "TEXINPUTS="+j.TexInputs)
+	if e := texPathEnv("TEXINPUTS", j.TexDirs); e != "" {
+		env = append(env, e)
 	}
-	if j.BibInputs != "" {
-		env = append(env, "BIBINPUTS="+j.BibInputs)
+	if e := texPathEnv("BIBINPUTS", j.BibDirs); e != "" {
+		env = append(env, e)
 	}
 	return env
+}
+
+// texPathEnv builds a "VAR=<dir>//:<dir>//:" value: each directory is marked
+// recursive ('//') and a trailing empty entry preserves the engine's defaults.
+func texPathEnv(name string, dirs []string) string {
+	if len(dirs) == 0 {
+		return ""
+	}
+	parts := make([]string, 0, len(dirs)+1)
+	for _, d := range dirs {
+		parts = append(parts, strings.TrimRight(d, "/")+"//")
+	}
+	parts = append(parts, "") // trailing empty => append the engine's default path
+	return name + "=" + strings.Join(parts, ":")
 }

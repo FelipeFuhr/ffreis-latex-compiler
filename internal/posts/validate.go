@@ -49,7 +49,7 @@ type Fields struct {
 	Body         string
 }
 
-// CheckFields applies the ffreis-posts rule set to metadata field values and
+// CheckFields applies the posts-repo rule set to metadata field values and
 // returns errors and warnings. It is the single source of truth shared by the
 // disk-facing Validate (generated posts) and the article validator.
 func CheckFields(f Fields) (errs, warns []string) {
@@ -82,8 +82,8 @@ type postMeta struct {
 	CanonicalURL string   `yaml:"canonical_url"`
 }
 
-// Validate checks postsDir/<slug>/index.md against the ffreis-posts rules
-// (mirrors ffreis-posts/scripts/validate-posts.py). It never returns an error;
+// Validate checks postsDir/<slug>/index.md against the posts-repo rules
+// (mirrors the posts repo's validate-posts.py). It never returns an error;
 // problems are reported as Errors/Warnings on the Result.
 func Validate(postsDir, slug string) Result {
 	res := Result{Slug: slug}
