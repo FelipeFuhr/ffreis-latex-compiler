@@ -18,8 +18,8 @@ IMAGE_TAG ?= local
 IMAGE_NAME ?= ffreis-latex-compiler
 
 
-.PHONY: mutation-test help \
-	fmt fmt-check lint validate test test-race coverage-gate quality-gates \
+.PHONY: mutation help \
+	fmt fmt-check lint validate test test-race coverage-gate integration-coverage-gate quality-gates \
 	hook-generated-drift secrets-scan-staged \
 	lefthook-bootstrap lefthook-install lefthook-run lefthook setup \
 
@@ -28,8 +28,8 @@ IMAGE_NAME ?= ffreis-latex-compiler
 	install build build-native validate-articles promote doctor \
 	ci-list install-act ci-local
 
-## mutation-test: run mutation testing with gremlins (slow — CI only)
-mutation-test:
+## mutation: run mutation testing with gremlins (slow — CI only)
+mutation:
 	@which gremlins >/dev/null 2>&1 || go install github.com/go-gremlins/gremlins/cmd/gremlins@latest
 	gremlins unleash --threshold-efficacy $(MUTATION_THRESHOLD) $(MUTATION_PACKAGES)
 
@@ -65,6 +65,9 @@ test-race: ## Run tests with race detector
 
 coverage-gate: ## Run tests with coverage and fail if below COVERAGE_MIN
 	@COVERAGE_MIN="$(COVERAGE_MIN)" ./scripts/hooks/check_coverage_gate.sh
+
+integration-coverage-gate: ## Run integration-tagged tests with coverage and fail if below COVERAGE_MIN (no-op if no //go:build integration files)
+	@COVERAGE_MIN="$(COVERAGE_MIN)" ./scripts/hooks/check_integration_coverage_gate.sh
 
 quality-gates: ## Run strict pre-push quality gates (test + race + coverage + govulncheck)
 	@./scripts/hooks/check_required_tools.sh $(GOVULNCHECK)
