@@ -12,13 +12,15 @@ LEFTHOOK_BIN ?= $(LEFTHOOK_DIR)/lefthook
 
 MUTATION_PACKAGES ?= ./internal/...
 MUTATION_THRESHOLD ?= 60
+FUZZ_PACKAGES      ?= ./internal/...
+FUZZ_TIME          ?= 30s
 
 CONTAINER_COMMAND ?= podman
 IMAGE_TAG ?= local
 IMAGE_NAME ?= ffreis-latex-compiler
 
 
-.PHONY: mutation help \
+.PHONY: mutation fuzz build-all help \
 	fmt fmt-check lint validate test test-race coverage-gate integration-coverage-gate quality-gates \
 	hook-generated-drift secrets-scan-staged \
 	lefthook-bootstrap lefthook-install lefthook-run lefthook setup \
@@ -32,6 +34,12 @@ IMAGE_NAME ?= ffreis-latex-compiler
 mutation:
 	@which gremlins >/dev/null 2>&1 || go install github.com/go-gremlins/gremlins/cmd/gremlins@latest
 	gremlins unleash --threshold-efficacy $(MUTATION_THRESHOLD) $(MUTATION_PACKAGES)
+
+build-all: ## Compile all packages required by the lefthook release tier
+	go build -o /dev/null ./...
+
+fuzz: ## Run all Fuzz* targets for FUZZ_TIME each (no-op when none exist)
+	@for pkg in $$(go list $(FUZZ_PACKAGES)); do targets=$$(go test -list 'Fuzz.*' "$$pkg" 2>/dev/null | grep '^Fuzz' || true); for target in $$targets; do go test -run='^$$' -fuzz="^$${target}$$" -fuzztime="$(FUZZ_TIME)" "$$pkg"; done; done
 
 help: ## Show available targets
 	@awk 'BEGIN {FS = ":.*## "; printf "Targets:\n"} /^[a-zA-Z0-9_.-]+:.*## / {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
