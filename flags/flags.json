@@ -1,0 +1,75 @@
+{
+  "$schema": "https://raw.githubusercontent.com/FelipeFuhr/ffreis-platform-standards/main/flags/flag-registry.schema.json",
+  "version": 1,
+  "project": "ffreis-latex-compiler",
+  "flags": [
+    {
+      "name": "output_gate_markdown",
+      "kind": "gate",
+      "category": "quality",
+      "binding": "compile",
+      "effect": "toggle",
+      "default": true,
+      "rule": "output-gate-exists",
+      "output_target": "document-export",
+      "seam": "internal/promote/promote.go — posts.Validate(postsBase, postSlug), which fails the promote when !res.OK()",
+      "description": "The Markdown target is content-verified: the staged index.md is re-run through the full disk-facing rule set (metadata fields, date parse, slug/dir agreement, thumbnail shape and existence, body image references, raw-HTML blocklist) and a failure blocks the promote. This is the one output target with a real gate."
+    },
+    {
+      "name": "output_gate_typeset",
+      "kind": "value",
+      "category": "quality",
+      "binding": "compile",
+      "effect": "route",
+      "options": ["error", "warn", "off"],
+      "value_type": "enum",
+      "default": "off",
+      "rule": "output-gate-exists",
+      "output_target": "document-export",
+      "exceptions": [
+        {
+          "scope": "the PDF (tectonic) and HTML (make4ht) targets",
+          "reason": "neither target has any content verification. The strongest check is renameToSlug in internal/engine/{tectonic,make4ht}.go, which is an os.Stat existence test and therefore passes for an empty or garbage document. There are no golden files, no testdata fixtures, no text extraction and no integration-tagged tests, so the typeset path is built in CI but never exercised against a sample article. Tracked debt: promote to error once a pdftotext-based smoke gate lands.",
+          "added": "2026-10-16"
+        }
+      ],
+      "description": "Declared exception rather than an absent entry: two of this compiler's three output targets ship unverified, and that is now visible instead of implicit."
+    },
+    {
+      "name": "font_integrity",
+      "kind": "gate",
+      "category": "quality",
+      "binding": "compile",
+      "effect": "toggle",
+      "default": false,
+      "rule": "font-integrity",
+      "output_target": "document-export",
+      "exceptions": [
+        {
+          "scope": "all targets — font selection belongs to the author's LaTeX preamble",
+          "reason": "this compiler ships no templates and has no font field in meta.yaml, so typography is chosen entirely by the author's main.tex preamble or a shared snippets-repo preamble. The compiler cannot know the declared family, so it cannot verify identity. Embedding is likewise unverified: tectonic's argv in internal/engine/tectonic.go carries no embedding flag and nothing inspects the result, so the engine default is relied on.",
+          "added": "2026-10-16"
+        }
+      ],
+      "description": "Not enforceable here as designed, which is a deliberate consequence of the raw-.tex input model rather than an oversight. Revisit if a font key is ever added to the meta.yaml contract."
+    },
+    {
+      "name": "image_alt_meaningful",
+      "kind": "gate",
+      "category": "quality",
+      "binding": "compile",
+      "effect": "toggle",
+      "default": false,
+      "rule": "image-alt-meaningful",
+      "output_target": "document-export",
+      "exceptions": [
+        {
+          "scope": "generated Markdown body images",
+          "reason": "the Markdown validator checks that every body image REFERENCE resolves on disk, which is reference existence rather than alt quality. imgBodyRE in internal/posts/posts.go matches an empty alt group, so an image written as ![](./images/x.png) validates cleanly today. Enforcing non-empty alt would be a real change in author-facing strictness and belongs in its own PR, not a declaration-only one.",
+          "added": "2026-10-16"
+        }
+      ],
+      "description": "Applicable to this compiler's Markdown output and currently unenforced. Declared so the gap is reviewable: the rule is meaningful here, it simply is not gated yet."
+    }
+  ]
+}
