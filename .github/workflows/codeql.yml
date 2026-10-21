@@ -2,7 +2,7 @@ name: CodeQL
 
 on:
   schedule:
-    - cron: "0 0 * * 1"
+    - cron: "48 14 8 * *"  # monthly scattered (was: 0 0 * * 1)
 
 permissions:
   actions: read
